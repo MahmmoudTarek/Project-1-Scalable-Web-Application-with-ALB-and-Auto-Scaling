@@ -1,58 +1,115 @@
-# Project-1-Scalable-Web-Application-with-ALB-and-Auto-Scaling
+# Serverless Image Processing with AWS Lambda & S3
 
-Deploy a simple web application on AWS using EC2 instances, ensuring high availability and scalability with Elastic Load Balancing (ALB) and Auto Scaling Groups (ASG). The project demonstrates best practices for compute scalability, security, and cost optimization.
+This project demonstrates a fully serverless application that processes images uploaded by users. When an image is uploaded to an S3 bucket, a Lambda function is triggered to resize the image and store it in a separate output bucket.
 
-## 🏗️ Architecture: EC2-based Web App on AWS
+---
 
-![Architecture ](https://github.com/user-attachments/assets/8eac6a10-f872-4a85-9664-9e8e468b6281)
+##  Architecture Diagram
+<img width="1030" height="413" alt="architecture" src="https://github.com/user-attachments/assets/4343e364-2d1c-497f-a9d6-09bea46b8053" />
 
 
 ---
 
-## 🔧 Key AWS Services Used
+##  Architecture Components
 
-| Service | Description |
-|--------|-------------|
-| **Amazon EC2** | Hosts the web application in scalable instances |
-| **Application Load Balancer (ALB)** | Distributes incoming HTTP/S traffic across multiple EC2 instances |
-| **Auto Scaling Group (ASG)** | Automatically adjusts the number of EC2 instances based on load |
-| **Amazon RDS** *(Optional)* | Provides a managed, scalable, and highly available relational database (MySQL/PostgreSQL) |
-| **IAM** | Controls secure, role-based access for EC2 and other services |
-| **CloudWatch** | Collects and monitors performance metrics and logs |
-| **SNS (Simple Notification Service)** | Sends automated alerts based on CloudWatch alarms |
+| AWS Service         | Purpose                                       |
+|---------------------|-----------------------------------------------|
+| Amazon S3           | Stores original and processed images          |
+| AWS Lambda          | Handles image processing (resize)             |
+| IAM Roles           | Grants Lambda permissions to access S3        |
+| Amazon CloudWatch   | Logs and metrics for Lambda execution         |
 
 ---
 
-## 📝 Project Description
+##  How It Works
 
-This project aims to:
-
-- Deploy a **simple web application** hosted on EC2 instances.
-- Use an **Application Load Balancer (ALB)** for distributing traffic across instances.
-- Enable **Auto Scaling** to dynamically adjust compute resources based on traffic.
-- Optionally, integrate an **Amazon RDS** instance for backend storage with Multi-AZ support.
-- Set up **CloudWatch and SNS** for performance monitoring and alert notifications.
-- Apply **IAM roles** for secure access management.
+1. A user uploads an image (e.g., `.jpg`) to the **source S3 bucket**
+2. The **S3 event** triggers the **Lambda function**
+3. Lambda resizes the image using Python (Pillow library)
+4. The resized image is stored in the **destination S3 bucket**
 
 ---
 
-## 🎯 Learning Outcomes
+##  Deployment Instructions
 
-By completing this project, you will learn how to:
+### 1. Prerequisites
 
-- ✅ Set up a secure and scalable web application architecture using EC2.
-- ✅ Configure and deploy an ALB to enable load distribution and fault tolerance.
-- ✅ Create and manage an Auto Scaling Group for dynamic scalability.
-- ✅ Monitor system performance and receive alerts using CloudWatch and SNS.
-- ✅ Apply AWS best practices for **security**, **availability**, and **cost optimization**.
+- AWS account
+- IAM user with permissions to manage S3 and Lambda
+- AWS CLI or AWS Console
+
+### 2. Create S3 Buckets
+
+```bash
+aws s3 mb s3://my-upload-bucket
+aws s3 mb s3://my-processed-bucket
+```
+### 3. Create the Lambda Function
+Runtime: Python 3.9+
+
+Use index.py file inside lambda/ folder
+
+Add this environment variable:
+| Key        | Value                                       |
+|---------------------|-----------------------------------------------|
+| DEST_BUCKET          | my-processed-bucket          |
+
+### 4. Attach IAM Policy to Lambda Role
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::my-upload-bucket/*",
+        "arn:aws:s3:::my-processed-bucket/*"
+      ]
+    }
+  ]
+}
+```
+### 5. Add S3 Trigger to Lambda
+- Choose my-upload-bucket
+- Event type: ObjectCreated (All)
+- Prefix (optional): images/
+
 
 ---
+## Testing
 
-## 📌 Optional Enhancements
-
-- Use **Amazon RDS** in Multi-AZ mode for high availability database integration.
-- Add **S3** for static file storage.
-- Use **CloudFront** to cache and deliver content globally.
-- Implement **CI/CD** with CodePipeline and CodeDeploy for automated deployments.
+1. Upload an image (e.g., photo.jpg) to the upload bucket
+2. Check the processed bucket for a resized version (300x300 px)
 
 ---
+## Security Best Practices
+
+- Apply least-privilege IAM roles
+- Block public access on both S3 buckets
+- Enable bucket versioning and encryption
+---
+## Cost Considerations
+
+1. AWS Lambda: pay-per-execution and duration
+2. S3: standard storage rates
+3. CloudWatch: minimal logs unless heavily used
+---
+## Learning Outcomes
+
+- Serverless architecture design
+- S3 event triggers
+- Lambda with environment variables
+- Secure IAM configurations
+- Cloud-native automation workflows
+---
+## Optional Enhancements
+
+- Add API Gateway for uploading images via POST request
+- Store metadata (filename, size) in DynamoDB
+- Use Step Functions for multiple processing steps
+----
+
